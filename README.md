@@ -221,7 +221,30 @@ But one thing that didnt go the way I planned: I kind of assumed that if I gave 
 
 ## Stretch Features
 
-**Analytics dashboard** (planned): aggregated view of detection patterns, appeal rate, and average confidence score. See `planning.md` for design.
+**Analytics dashboard** — implemented and working.
+
+`GET /analytics` reads the full audit log and returns:
+
+- `detection_patterns`: count of submissions per attribution category
+- `appeal_rate`: appeals filed ÷ total submissions
+- `average_confidence`: mean confidence score across all submissions
+
+Example output from testing (18 total submissions accumulated across all milestones):
+
+```json
+{
+  "appeal_rate": 0.056,
+  "average_confidence": 0.472,
+  "detection_patterns": {
+    "likely_ai": 1,
+    "likely_human": 4,
+    "uncertain": 13
+  },
+  "total_submissions": 18
+}
+```
+
+Notably, 13 of 18 submissions landed in "uncertain," a direct, visible consequence of the asymmetric thresholds chosen during planning: the system strongly prefers flagging genuine uncertainty over confidently committing to "likely_ai."
 
 ## Progress Log
 
@@ -232,5 +255,4 @@ But one thing that didnt go the way I planned: I kind of assumed that if I gave 
 - ✅ Milestone 4: Signal 2 (stylometric heuristics) implemented and calibrated, combined confidence scoring wired in, tested against 4 inputs spanning the confidence range
 - ✅ Milestone 5: transparency labels wired in and all 3 variants confirmed reachable, appeals workflow built and tested end-to-end, rate limiting implemented and verified (10/minute, 100/day), audit log confirmed complete with sample entries
 - ✅ Milestone 6: README fully documented (spec reflection, AI usage sections added)
-- ⬜ stretch feature - Analytics dashboard
-- ⬜ Portfolio walkthrough recording
+- ✅ Stretch feature: analytics dashboard (GET /analytics) implemented and tested

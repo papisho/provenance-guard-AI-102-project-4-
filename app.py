@@ -7,6 +7,7 @@ from signals.llm_signal import get_llm_signal
 from signals.stylometry import get_stylometry_signal
 from scoring import compute_confidence, get_attribution
 from labels import get_label
+from analytics import compute_analytics
 from audit_log import log_entry, current_timestamp, get_log, find_entry_by_content_id, update_entry_status
 
 app = Flask(__name__)
@@ -104,6 +105,11 @@ def appeal():
 @app.route("/log", methods=["GET"])
 def get_log_entries():
     return jsonify({"entries": get_log()})
+
+
+@app.route("/analytics", methods=["GET"])
+def analytics():
+    return jsonify(compute_analytics())
 
 
 if __name__ == "__main__":

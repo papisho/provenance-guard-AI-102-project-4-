@@ -34,6 +34,11 @@ def log_entry(entry: dict) -> None:
     _write_all_entries(entries)
 
 
+def get_all_entries() -> list:
+    """Returns every audit log entry, oldest first. Used for analytics."""
+    return _read_all_entries()
+
+
 def get_log(limit: int = 20) -> list:
     """Returns the most recent audit log entries, newest first."""
     entries = _read_all_entries()
