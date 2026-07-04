@@ -49,7 +49,7 @@ def find_entry_by_content_id(content_id: str) -> dict | None:
     return None
 
 
-def update_entry_status(content_id: str, status: str, appeal_reasoning: str = None) -> bool:
+def update_entry_status(content_id: str, status: str, appeal_reasoning: str = None, appeal_timestamp: str = None) -> bool:
     """
     Updates the status of an entry matching content_id (used by the appeals
     workflow in Milestone 5). Returns True if an entry was found and updated.
@@ -61,6 +61,8 @@ def update_entry_status(content_id: str, status: str, appeal_reasoning: str = No
             entry["status"] = status
             if appeal_reasoning is not None:
                 entry["appeal_reasoning"] = appeal_reasoning
+            if appeal_timestamp is not None:
+                entry["appeal_timestamp"] = appeal_timestamp
             updated = True
     if updated:
         _write_all_entries(entries)

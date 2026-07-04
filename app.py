@@ -1,15 +1,26 @@
 
 import uuid
 from flask import Flask, request, jsonify
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from signals.llm_signal import get_llm_signal
 from signals.stylometry import get_stylometry_signal
 from scoring import compute_confidence, get_attribution
-from audit_log import log_entry, current_timestamp, get_log
+from labels import get_label
+from audit_log import log_entry, current_timestamp, get_log, find_entry_by_content_id, update_entry_status
 
 app = Flask(__name__)
 
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri="memory://",
+)
+
 
 @app.route("/submit", methods=["POST"])
+@limiter.limit("10 per minute;100 per day")
 def submit():
     data = request.get_json(silent=True) or {}
     text = data.get("text")
@@ -33,8 +44,8 @@ def submit():
     confidence = compute_confidence(signal_1_score, signal_2_score)
     attribution = get_attribution(confidence)
 
-    # Placeholder label. Real transparency label logic arrives in Milestone 5.
-    label = "placeholder label, real transparency label logic coming in Milestone 5"
+    # Transparency label matching the confidence-based attribution category.
+    label = get_label(confidence)
 
     # Write structured audit log entry for this submission.
     log_entry({
@@ -57,6 +68,36 @@ def submit():
         "signal_1_reasoning": signal_1_result["reasoning"],
         "signal_2_score": signal_2_score,
         "signal_2_metrics": signal_2_result["metrics"]
+    })
+
+
+@app.route("/appeal", methods=["POST"])
+def appeal():
+    data = request.get_json(silent=True) or {}
+    content_id = data.get("content_id")
+    creator_reasoning = data.get("creator_reasoning")
+
+    if not content_id or not creator_reasoning:
+        return jsonify({"error": "content_id and creator_reasoning are required"}), 400
+
+    existing_entry = find_entry_by_content_id(content_id)
+    if existing_entry is None:
+        return jsonify({"error": f"No submission found with content_id {content_id}"}), 404
+
+    updated = update_entry_status(
+        content_id=content_id,
+        status="under_review",
+        appeal_reasoning=creator_reasoning,
+        appeal_timestamp=current_timestamp()
+    )
+
+    if not updated:
+        return jsonify({"error": "Failed to update entry"}), 500
+
+    return jsonify({
+        "content_id": content_id,
+        "status": "under_review",
+        "message": "Your appeal has been received and is under review."
     })
 
 

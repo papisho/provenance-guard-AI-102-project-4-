@@ -87,25 +87,119 @@ Notably, even the clearest AI-generated sample lands in "uncertain" rather than 
 
 ## Transparency Labels
 
-_To be completed in Milestone 5._
+Three label variants, implemented and confirmed reachable via the `/submit` endpoint:
 
-Planned label variants (see `planning.md`):
+**High-confidence AI (confidence 0.75 - 1.0):**
 
-- High-confidence AI
-- Uncertain
-- High-confidence human
+> "This content shows strong indicators of AI generation based on our analysis. If you believe this is a mistake, you can appeal this classification."
+
+**Uncertain (confidence 0.35 - 0.74):**
+
+> "Our system could not confidently determine whether this content was AI-generated or human-written. This result reflects genuine uncertainty in the analysis."
+
+**High-confidence human (confidence 0.0 - 0.34):**
+
+> "This content shows strong indicators of human authorship based on our analysis."
 
 ## Appeals Workflow
 
-_To be completed in Milestone 5._
+`POST /appeal` accepts `content_id` and `creator_reasoning`. On a valid appeal:
+
+1. The original submission is looked up by `content_id`.
+2. Its status is updated to `"under_review"`.
+3. The appeal reasoning and an appeal timestamp are added to that same audit log entry, alongside the original classification data.
+4. A confirmation response is returned to the creator.
+
+Example, tested end-to-end:
+
+```json
+{
+  "content_id": "39ef7897-5d6c-4b6f-93e8-c3165d7e66d4",
+  "creator_id": "test-edited-ai",
+  "timestamp": "2026-07-04T21:09:56.655Z",
+  "attribution": "likely_human",
+  "confidence": 0.316,
+  "signal_1_score": 0.2,
+  "signal_2_score": 0.489,
+  "status": "under_review",
+  "appeal_reasoning": "I wrote this myself from personal experience. I am a non-native English speaker and my writing style may appear more formal than typical.",
+  "appeal_timestamp": "2026-07-04T21:14:27.106Z"
+}
+```
+
+Automated re-classification is not implemented; a human reviewer would use this log entry (original decision + appeal reasoning) to make a manual call.
 
 ## Rate Limiting
 
-_To be completed in Milestone 5 with chosen limits and reasoning._
+`POST /submit` is limited to **10 requests per minute** and **100 requests per day** per client, using Flask-Limiter with in-memory storage.
+
+Reasoning: a legitimate writer submitting drafts or revisions is very unlikely to exceed 10 submissions in a single minute, and 100 per day comfortably covers even a very active user across a full day. The per-minute limit is the main defense against automated flooding (rapid repeated requests), while the per-day limit is a backstop against sustained abuse.
+
+Tested by firing 12 rapid requests in a row:
+
+```
+200
+200
+200
+200
+200
+200
+200
+200
+200
+200
+429
+429
+```
+
+The first 10 succeeded, the 11th and 12th were correctly rejected with `429 Too Many Requests`.
 
 ## Audit Log
 
-_To be completed in Milestone 5 with sample entries._
+Every submission and appeal writes a structured JSON entry to `audit_log.json`, containing: `content_id`, `creator_id`, `timestamp`, `attribution`, `confidence`, `signal_1_score`, `signal_2_score`, `status`, and (when applicable) `appeal_reasoning` and `appeal_timestamp`.
+
+Sample entries from testing:
+
+```json
+{
+  "attribution": "uncertain",
+  "confidence": 0.617,
+  "content_id": "ad453bcd-6209-4bf9-ad83-51e70a7cff02",
+  "creator_id": "test-ai",
+  "signal_1_score": 0.8,
+  "signal_2_score": 0.343,
+  "status": "classified",
+  "timestamp": "2026-07-04T21:09:13.772Z"
+}
+```
+
+```json
+{
+  "attribution": "uncertain",
+  "confidence": 0.592,
+  "content_id": "2a695f20-75b5-424f-bc31-f8cb5a05611e",
+  "creator_id": "test-formal-human",
+  "signal_1_score": 0.8,
+  "signal_2_score": 0.281,
+  "status": "classified",
+  "timestamp": "2026-07-04T20:52:59.863Z"
+}
+```
+
+```json
+{
+  "attribution": "likely_human",
+  "confidence": 0.316,
+  "content_id": "39ef7897-5d6c-4b6f-93e8-c3165d7e66d4",
+  "creator_id": "test-edited-ai",
+  "signal_1_score": 0.2,
+  "signal_2_score": 0.489,
+  "status": "under_review",
+  "appeal_reasoning": "I wrote this myself from personal experience. I am a non-native English speaker and my writing style may appear more formal than typical.",
+  "appeal_timestamp": "2026-07-04T21:14:27.106Z",
+  "timestamp": "2026-07-04T21:09:56.655Z"
+}
+```
 
 ## Known Limitations
 
@@ -132,5 +226,5 @@ _To be completed in Milestone 6._
 - ✅ Milestone 2: planning.md written with all five spec questions, architecture section, and AI tool plan
 - ✅ Milestone 3: Flask app built, POST /submit endpoint working with real Signal 1 (Groq), structured audit log writing on every submission, GET /log endpoint returning entries
 - ✅ Milestone 4: Signal 2 (stylometric heuristics) implemented and calibrated, combined confidence scoring wired in, tested against 4 inputs spanning the confidence range
-- ⬜ Milestone 5: production layer (labels, appeals, rate limiting, audit log)
+- ✅ Milestone 5: transparency labels wired in and all 3 variants confirmed reachable, appeals workflow built and tested end-to-end, rate limiting implemented and verified (10/minute, 100/day), audit log confirmed complete with sample entries
 - ⬜ Milestone 6: documentation and walkthrough
