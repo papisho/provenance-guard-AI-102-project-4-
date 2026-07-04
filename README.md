@@ -209,11 +209,15 @@ Sample entries from testing:
 
 ## Spec Reflection
 
-_To be completed in Milestone 6._
+Honestly the planning.md really helped when it came to the confidence thresholds. Like we decided early on that it should be harder to hit "likely_ai" than "likely_human" because a false positive is way worse for a real person's work. And it actually worked when I tested it, the formal writing sample (the one that sounds kinda robotic just bc its academic) didnt get flagged as AI even though signal 1 thought it was, which is exactly what we wanted.
+
+But one thing that didnt go the way I planned: I kind of assumed that if I gave it super obvious AI text it would just say "likely_ai" no question. Nope. Even my most obvious AI paragraph only got to "uncertain" because of how the weights worked out. At first I thought this was a bug but then I realized its actually just the system doing what we told it to do (be cautious), so I left it alone instead of messing with the thresholds to force a "likely_ai" result. Kind of a good reminder that when you build in caution on purpose, it shows up in weird ways you didnt fully think through at the planning stage.
 
 ## AI Usage
 
-_To be completed in Milestone 6._
+**Instance 1**: I had the AI generate my stylometric signal function (the sentence length variance / vocab diversity / punctuation stuff) based on what I wrote in planning.md. First version it gave me was kinda broken though, like all my test scores came out squished between 0.05 and 0.3, and my "clearly AI" example actually scored LOWER than one of my borderline cases which makes no sense. I had it go back and actually calculate the real numbers from my test sentences instead of just guessing at thresholds, and after that the scores spread out way better (like 0.17 to 0.53) and actually made sense.
+
+**Instance 2**: When I had the AI build the confidence scoring logic that combines both signals, I ran my 4 test cases through it and noticed something weird, even my most obvious "this is definitely AI" text didnt cross the threshold for "likely_ai," it just landed on "uncertain." I could've just lowered the threshold to make it "pass" but I decided not to, because that defeats the whole point of being cautious about false positives that we planned for. So I just left it and documented why instead of tweaking numbers until it gave me the answer I expected.
 
 ## Stretch Features
 
@@ -227,4 +231,6 @@ _To be completed in Milestone 6._
 - ✅ Milestone 3: Flask app built, POST /submit endpoint working with real Signal 1 (Groq), structured audit log writing on every submission, GET /log endpoint returning entries
 - ✅ Milestone 4: Signal 2 (stylometric heuristics) implemented and calibrated, combined confidence scoring wired in, tested against 4 inputs spanning the confidence range
 - ✅ Milestone 5: transparency labels wired in and all 3 variants confirmed reachable, appeals workflow built and tested end-to-end, rate limiting implemented and verified (10/minute, 100/day), audit log confirmed complete with sample entries
-- ⬜ Milestone 6: documentation and walkthrough
+- ✅ Milestone 6: README fully documented (spec reflection, AI usage sections added)
+- ⬜ stretch feature - Analytics dashboard
+- ⬜ Portfolio walkthrough recording
