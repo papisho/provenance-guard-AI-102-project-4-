@@ -2,6 +2,8 @@
 import uuid
 from flask import Flask, request, jsonify
 from signals.llm_signal import get_llm_signal
+from signals.stylometry import get_stylometry_signal
+from scoring import compute_confidence, get_attribution
 from audit_log import log_entry, current_timestamp, get_log
 
 app = Flask(__name__)
@@ -18,15 +20,18 @@ def submit():
 
     content_id = str(uuid.uuid4())
 
-    # Signal 1: Groq LLM classification (real, working)
+    # Signal 1: Groq LLM classification
     signal_1_result = get_llm_signal(text)
     signal_1_score = signal_1_result["score"]
 
-    # Placeholder confidence and attribution using Signal 1 alone.
-    # Real combined confidence scoring (Signal 1 + Signal 2) arrives in
-    # Milestone 4, along with the real threshold-based attribution logic.
-    confidence = signal_1_score
-    attribution = "likely_ai" if confidence >= 0.5 else "likely_human"
+    # Signal 2: stylometric heuristics
+    signal_2_result = get_stylometry_signal(text)
+    signal_2_score = signal_2_result["score"]
+
+    # Real combined confidence scoring and attribution (weighted average +
+    # asymmetric thresholds, see planning.md and scoring.py).
+    confidence = compute_confidence(signal_1_score, signal_2_score)
+    attribution = get_attribution(confidence)
 
     # Placeholder label. Real transparency label logic arrives in Milestone 5.
     label = "placeholder label, real transparency label logic coming in Milestone 5"
@@ -39,6 +44,7 @@ def submit():
         "attribution": attribution,
         "confidence": confidence,
         "signal_1_score": signal_1_score,
+        "signal_2_score": signal_2_score,
         "status": "classified"
     })
 
@@ -48,7 +54,9 @@ def submit():
         "confidence": confidence,
         "label": label,
         "signal_1_score": signal_1_score,
-        "signal_1_reasoning": signal_1_result["reasoning"]
+        "signal_1_reasoning": signal_1_result["reasoning"],
+        "signal_2_score": signal_2_score,
+        "signal_2_metrics": signal_2_result["metrics"]
     })
 
 

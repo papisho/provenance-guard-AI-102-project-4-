@@ -62,12 +62,28 @@ Note: file names above reflect the planned structure from `planning.md` and may 
 - Sends submitted text to `llama-3.3-70b-versatile` with a structured prompt asking for an `ai_probability` score between 0 and 1.
 - Tested independently on clearly-AI and clearly-human sample text before integration: clearly-AI text scored 0.8, clearly-human text scored 0.2, confirming meaningful separation.
 - Falls back to a neutral 0.5 score if the model output cannot be parsed as JSON, rather than crashing the endpoint.
+- Known blind spot, confirmed in testing: can be fooled by lightly-edited AI text. A lightly-edited AI sample scored 0.2 (read as human), pulling the overall confidence down to "likely_human" for that case. See Known Limitations.
 
-_Signal 2 (stylometric heuristics) to be completed in Milestone 4._
+**Signal 2: Stylometric heuristics (pure Python)** — implemented and working.
+
+- Combines three metrics into a single 0-1 score: sentence length variance, type-token ratio (vocabulary diversity), and punctuation density.
+- Normalization constants were calibrated against real measured values from test samples (not guessed), since initial constants compressed all scores into a narrow, low range.
+- Known blind spot: type-token ratio is a weak signal on short text (under ~30 words), since vocabulary diversity naturally stays high regardless of authorship at that length. It only becomes a reliable signal on longer passages.
 
 ## Confidence Scoring
 
-_To be completed in Milestone 4 with example submissions showing score variation._
+Combined confidence = (0.6 × Signal 1 score) + (0.4 × Signal 2 score), mapped to three bands: 0.75-1.0 (likely_ai), 0.35-0.74 (uncertain), 0.0-0.34 (likely_human). Thresholds are intentionally asymmetric, it takes more evidence to reach "likely_ai" than "likely_human", to avoid false accusations against human creators.
+
+Tested against 4 inputs spanning the confidence range:
+
+| Input                                | Signal 1 | Signal 2 | Confidence | Attribution  |
+| ------------------------------------ | -------- | -------- | ---------- | ------------ |
+| Clearly AI-generated                 | 0.8      | 0.343    | 0.617      | uncertain    |
+| Clearly human-written                | 0.2      | 0.131    | 0.172      | likely_human |
+| Borderline: formal human writing     | 0.8      | 0.281    | 0.592      | uncertain    |
+| Borderline: lightly edited AI output | 0.2      | 0.489    | 0.316      | likely_human |
+
+Notably, even the clearest AI-generated sample lands in "uncertain" rather than "likely_ai," a deliberate consequence of the asymmetric thresholds: the system would rather flag genuine uncertainty than confidently accuse. The formal human writing case correctly avoided a false "likely_ai" label, showing the asymmetric design working as intended.
 
 ## Transparency Labels
 
@@ -93,7 +109,9 @@ _To be completed in Milestone 5 with sample entries._
 
 ## Known Limitations
 
-_To be completed in Milestone 6._
+**Signal 1 can be fooled by lightly-edited AI text.** During Milestone 4 testing, a lightly-edited AI-generated sample (natural-sounding sentence starters, informal tone) was scored 0.2 by the Groq signal, holistically reading it as human-written. This pulled the combined confidence down to "likely_human" even though the text was AI-generated. This is a structural limitation of asking an LLM to holistically judge tone and phrasing: it can be misled by surface-level informality regardless of underlying origin.
+
+**Signal 2's type-token ratio metric is unreliable on short text.** On passages under roughly 30 words, vocabulary diversity naturally stays high (0.86-0.90 in our testing) regardless of who wrote it, since there's little opportunity for repetition either way. This metric only becomes a meaningful discriminator on longer text samples.
 
 ## Spec Reflection
 
@@ -113,6 +131,6 @@ _To be completed in Milestone 6._
 - ✅ Milestone 1: architecture defined, detection signals chosen, API surface sketched, diagram drawn
 - ✅ Milestone 2: planning.md written with all five spec questions, architecture section, and AI tool plan
 - ✅ Milestone 3: Flask app built, POST /submit endpoint working with real Signal 1 (Groq), structured audit log writing on every submission, GET /log endpoint returning entries
-- ⬜ Milestone 4: second signal + confidence scoring
+- ✅ Milestone 4: Signal 2 (stylometric heuristics) implemented and calibrated, combined confidence scoring wired in, tested against 4 inputs spanning the confidence range
 - ⬜ Milestone 5: production layer (labels, appeals, rate limiting, audit log)
 - ⬜ Milestone 6: documentation and walkthrough
