@@ -57,12 +57,13 @@ Note: file names above reflect the planned structure from `planning.md` and may 
 
 ## Detection Signals
 
-_To be completed in Milestone 3 and 4 with implementation details, sample outputs, and reasoning._
+**Signal 1: LLM-based classification (Groq)** — implemented and working.
 
-Planned signals (see `planning.md` for full reasoning):
+- Sends submitted text to `llama-3.3-70b-versatile` with a structured prompt asking for an `ai_probability` score between 0 and 1.
+- Tested independently on clearly-AI and clearly-human sample text before integration: clearly-AI text scored 0.8, clearly-human text scored 0.2, confirming meaningful separation.
+- Falls back to a neutral 0.5 score if the model output cannot be parsed as JSON, rather than crashing the endpoint.
 
-- Signal 1: LLM-based classification (Groq)
-- Signal 2: Stylometric heuristics (sentence length variance, type-token ratio, punctuation density)
+_Signal 2 (stylometric heuristics) to be completed in Milestone 4._
 
 ## Confidence Scoring
 
@@ -111,7 +112,7 @@ _To be completed in Milestone 6._
 - ✅ Getting Started: repo created, environment set up, dependencies installed
 - ✅ Milestone 1: architecture defined, detection signals chosen, API surface sketched, diagram drawn
 - ✅ Milestone 2: planning.md written with all five spec questions, architecture section, and AI tool plan
-- ⬜ Milestone 3: submission endpoint + first signal
+- ✅ Milestone 3: Flask app built, POST /submit endpoint working with real Signal 1 (Groq), structured audit log writing on every submission, GET /log endpoint returning entries
 - ⬜ Milestone 4: second signal + confidence scoring
 - ⬜ Milestone 5: production layer (labels, appeals, rate limiting, audit log)
 - ⬜ Milestone 6: documentation and walkthrough
